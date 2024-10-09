@@ -17,13 +17,14 @@ class LinearRegression:
         if self.a == None:
             print("Model not trained yet")
         else:
-            print(self.a)
+            return self.a * X
 
 
 class ModelEvaluation:
     @staticmethod
     def mean_square_error(model, y, X):
-        pass
+        prediction = model.predict(X)
+        return np.mean((y - prediction) ** 2)
 
 
 # Генерирование данных

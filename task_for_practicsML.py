@@ -52,4 +52,19 @@ y1 = model_simple.predict(x1)
 
 # Создаем данные для линии 2
 x2 = np.linspace(0, 1, 100)
-y1 = model_MNK.predict(x2)
+y2 = model_MNK.predict(x2)
+
+x_points = X
+y_points = y
+
+plt.figure(figsize=(10, 6))
+
+plt.plot(x1, y1, label="simple", color="blue", linestyle="-", linewidth=2)
+
+plt.plot(x2, y2, label="mnk", color="red", linestyle="--", linewidth=2)
+
+plt.scatter(x_points, y_points, color="green", marker="o", label="Точки")
+
+print(ModelEvaluation.mean_square_error(model_simple, y, X))
+print(ModelEvaluation.mean_square_error(model_MNK, y, X))
+plt.show()

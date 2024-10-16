@@ -68,3 +68,5 @@ plt.scatter(x_points, y_points, color="green", marker="o", label="Точки")
 print(ModelEvaluation.mean_square_error(model_simple, y, X))
 print(ModelEvaluation.mean_square_error(model_MNK, y, X))
 plt.show()
+
+"puk puk"

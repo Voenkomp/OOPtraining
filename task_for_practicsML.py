@@ -70,3 +70,4 @@ print(ModelEvaluation.mean_square_error(model_MNK, y, X))
 plt.show()
 
 "puk puk"
+"chak-chak"

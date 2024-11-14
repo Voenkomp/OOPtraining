@@ -28,7 +28,7 @@ class MyLineReg:
             f"MyLineReg class: n_iter={self.n_iter}, learning_rate={self.learning_rate}"
         )
 
-    def get_metric(self, metric, y, y_hat):
+    def get_metric(self, y, y_hat):
         metrics = {
             "mae": np.sum(abs(y - y_hat)) / len(y),
             "mse": np.sum((y_hat - y) ** 2) / len(y),
@@ -36,37 +36,55 @@ class MyLineReg:
             "mape": np.sum(np.abs((y - y_hat) / y)) * (100 / len(y)),
             "r2": 1 - (np.sum(((y - y_hat) ** 2)) / np.sum(((y - np.mean(y)) ** 2))),
         }
-        return metrics[metric]
+        return metrics[self.metric] if self.metric else metrics["mse"]
+
+    def get_reg(self, W):
+        if self.reg:
+            dict_reg = {
+                "l1": (self.l1_coef * np.sum(np.abs(W)), self.l1_coef * np.sign(W)),
+                "l2": (self.l2_coef * np.sum(W**2), self.l2_coef * 2 * W),
+                "elasticnet": (
+                    self.l1_coef * np.sum(np.abs(W)) + self.l2_coef * np.sum(W**2),
+                    self.l1_coef * np.sign(W) + self.l2_coef * 2 * W,
+                ),
+            }
+            return dict_reg[self.reg]
+        else:
+            return 0, 0
 
     def fit(self, X: pd.DataFrame, y: pd.Series, verbose: int = False):
-        # X.insert(0, 'ones', 1) #дополнение вектора фичей единичным столбцом
+        X.insert(0, "ones", 1)  # дополнение вектора фичей единичным столбцом
         W = np.ones(X.shape[1])  # инициализация вектора весов соответствующей длины
 
-        for i in range(self.n_iter):
+        for i in range(1, self.n_iter + 1):
             y_hat = np.dot(X, W)  # вычисление предсказаний
+            reg_part_loss, reg_part_grad = self.get_reg(W)
 
-            MSE = self.get_metric(
-                "mse", y, y_hat
-            )  # вычисление метрики MSE (в данном случае MSE)
+            LOSS_F = self.get_metric(y, y_hat) + reg_part_loss  # расчет функции потерь
 
             if verbose:
-                if i == 0:
+                if i == 1:
                     if self.metric:
                         print(
-                            f"start | loss: {MSE} | {self.metric}: {self.get_metric(self.metric, y, y_hat)}"
+                            f"start | loss: {LOSS_F} | {self.metric}: {self.get_metric(y, y_hat)}"
                         )
                     else:
-                        print(f"start | loss: {MSE}")
-                elif (i + 1) % verbose == 0:
+                        print(f"start | loss: {LOSS_F}")
+                elif i % verbose == 0:
                     if self.metric:
                         print(
-                            f"{i} | loss: {MSE} | {self.metric}: {self.get_metric(self.metric, y, y_hat)}"
+                            f"{i} | loss: {LOSS_F} | {self.metric}: {self.get_metric(y, y_hat)}"
                         )
                     else:
-                        print(f"{i} | loss: {MSE}")
+                        print(f"{i} | loss: {LOSS_F}")
 
-            grad = 2 / len(y) * np.dot((y_hat - y), X)
-            W -= self.learning_rate * grad
+            grad = 2 / len(y) * np.dot((y_hat - y), X) + reg_part_grad
+
+            if callable(self.learning_rate):
+                W -= self.learning_rate(i) * grad
+            else:
+                W -= self.learning_rate * grad
+
             self.weights = W
 
     def get_coef(self):
@@ -77,10 +95,10 @@ class MyLineReg:
         return np.dot(X, self.weights)
 
     def get_best_score(self):
-        last_metric = self.get_metric(self.metric, y, self.predict(X))
+        last_metric = self.get_metric(y, self.predict(X))
         return last_metric
 
 
-object = MyLineReg(50, 0.1, metric="mai")
+object = MyLineReg(50, 0.03)
 object.fit(X, y, 10)
-object.get_best_score()
+print(np.sum(object.get_coef()))

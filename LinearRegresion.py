@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import random
 from sklearn.datasets import make_regression
 
 X, y = make_regression(
@@ -13,7 +14,15 @@ X.columns = [f"col_{col}" for col in X.columns]
 
 class MyLineReg:
     def __init__(
-        self, n_iter, learning_rate, metric: str = None, reg=None, l1_coef=0, l2_coef=0
+        self,
+        n_iter,
+        learning_rate,
+        metric: str = None,
+        reg=None,
+        l1_coef: float = 0,
+        l2_coef: float = 0,
+        sgd_sample=None,
+        random_state=42,
     ):
         self.n_iter = n_iter
         self.learning_rate = learning_rate
@@ -22,6 +31,8 @@ class MyLineReg:
         self.reg = reg
         self.l1_coef = l1_coef
         self.l2_coef = l2_coef
+        self.sgd_sample = sgd_sample
+        self.random_state = random_state
 
     def __str__(self):
         return (
@@ -53,10 +64,22 @@ class MyLineReg:
             return 0, 0
 
     def fit(self, X: pd.DataFrame, y: pd.Series, verbose: int = False):
+
+        random.seed(
+            self.random_state
+        )  # фиксируем рандом, чтобы выборка была одинаковая
+
         X.insert(0, "ones", 1)  # дополнение вектора фичей единичным столбцом
         W = np.ones(X.shape[1])  # инициализация вектора весов соответствующей длины
 
+        if (
+            isinstance(self.sgd_sample, float) and 0 < self.sgd_sample <= 1
+        ):  # если введена дробь, то рассчитывается кол-во строк от этой доли
+            self.sgd_sample = int(round(self.sgd_sample * X.shape[0]))
+            # print(self.sgd_sample)
+
         for i in range(1, self.n_iter + 1):
+
             y_hat = np.dot(X, W)  # вычисление предсказаний
             reg_part_loss, reg_part_grad = self.get_reg(W)
 
@@ -78,7 +101,20 @@ class MyLineReg:
                     else:
                         print(f"{i} | loss: {LOSS_F}")
 
-            grad = 2 / len(y) * np.dot((y_hat - y), X) + reg_part_grad
+            if self.sgd_sample:
+                sample_rows_idx = random.sample(range(X.shape[0]), self.sgd_sample)
+
+                grad = (
+                    2
+                    / len(sample_rows_idx)
+                    * np.dot(
+                        (y_hat[sample_rows_idx] - y.iloc[sample_rows_idx]),
+                        X.iloc[sample_rows_idx],
+                    )
+                    + reg_part_grad
+                )
+            else:
+                grad = 2 / len(y) * np.dot((y_hat - y), X) + reg_part_grad
 
             if callable(self.learning_rate):
                 W -= self.learning_rate(i) * grad
@@ -99,6 +135,6 @@ class MyLineReg:
         return last_metric
 
 
-object = MyLineReg(50, 0.03)
+object = MyLineReg(100, 0.01, sgd_sample=0.1)
 object.fit(X, y, 10)
 print(np.sum(object.get_coef()))

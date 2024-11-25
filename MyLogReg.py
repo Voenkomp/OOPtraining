@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 from sklearn.datasets import make_regression
 
+"""Этот код является имплементацией алгоритма машинного обучения логистической регрессии"""
+
 X, y = make_regression(
     n_samples=1000, n_features=14, n_informative=10, noise=15, random_state=42
 )
@@ -27,19 +29,23 @@ class MyLogReg:
         X.insert(
             loc=0, column="ones", value=1
         )  # добавление в матрицу фичей единичного столбца
-        W = np.ones(X.shape[1])
+        self.weights = np.ones(X.shape[1])  # заполнение вектора весов единицами
+        eps = 1e-15
 
         for i in range(1, self.n_iter + 1):
-            y_hat = 1 / (1 + np.e ** (np.dot(X, W)))  # предсказываю значения y
+
+            y_hat = 1 / (1 + np.exp(-(X @ W)))  # расчет предсказанных значений (y_hat)
+
             Logloss = (-1 / len(y)) * np.sum(
                 y * np.log10(y_hat + 10**-15) + (1 - y) * np.log10(1 - y_hat + 10**-15)
             )  # расчет функции потерь
+
             grad = 1 / len(y) * np.dot((y_hat - y), X)
             W -= self.learning_rate * grad
             self.weights = W
 
     def get_coef(self):
-        return np.array(self.weights)
+        return np.array(self.weights[1:])
 
 
 object1 = MyLogReg(50, 0.1)

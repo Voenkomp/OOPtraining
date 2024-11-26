@@ -5,7 +5,7 @@ from sklearn.datasets import make_regression
 """Этот код является имплементацией алгоритма машинного обучения логистической регрессии"""
 
 X, y = make_regression(
-    n_samples=1000, n_features=14, n_informative=10, noise=15, random_state=42
+    n_samples=400, n_features=14, n_informative=5, noise=15, random_state=42
 )
 X = pd.DataFrame(X)
 y = pd.Series(y)
@@ -34,21 +34,41 @@ class MyLogReg:
 
         for i in range(1, self.n_iter + 1):
 
-            y_hat = 1 / (1 + np.exp(-(X @ W)))  # расчет предсказанных значений (y_hat)
+            y_hat = 1 / (
+                1 + np.exp(-(X @ self.weights))
+            )  # расчет предсказанных значений (y_hat)
 
-            Logloss = (-1 / len(y)) * np.sum(
-                y * np.log10(y_hat + 10**-15) + (1 - y) * np.log10(1 - y_hat + 10**-15)
-            )  # расчет функции потерь
+            Logloss = -np.mean(
+                y * np.log(y_hat + eps) + (1 - y) * np.log(1 - y_hat + eps)
+            )
 
-            grad = 1 / len(y) * np.dot((y_hat - y), X)
-            W -= self.learning_rate * grad
-            self.weights = W
+            if verbose and (i == 1 or i % verbose) == 0:
+                print(f"{i} | loss: {Logloss}")
+
+            grad = 1 / len(y) * np.dot((y_hat - y), X)  # расчет градиента
+            self.weights -= self.learning_rate * grad  # обновление весов
 
     def get_coef(self):
-        return np.array(self.weights[1:])
+        return self.weights[1:]
+
+    """возращает вероятности"""
+
+    def predict_proba(self, X: pd.DataFrame):
+        if X.columns[0] != "ones":
+            X.insert(loc=0, column="ones", value=1)
+        return 1 / (1 + np.exp(-(X @ self.weights)))
+
+    """переводит вероятности в бинарные классы"""
+
+    def predict(self, X: pd.DataFrame):
+        return np.where(self.predict_proba(X) > 0.5, 1, 0)
 
 
-object1 = MyLogReg(50, 0.1)
+object1 = MyLogReg(n_iter=50, learning_rate=0.1)
 
 object1.fit(X, y)
-print(np.mean(object1.get_coef()))
+
+# print(np.mean(object1.get_coef()))
+# print(object1.predict_proba(X))
+print(np.mean(object1.predict_proba(X)))
+print(sum(object1.predict(X)))

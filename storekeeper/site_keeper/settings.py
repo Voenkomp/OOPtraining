@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from read_json import return_dict
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -74,16 +75,7 @@ WSGI_APPLICATION = "site_keeper.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "storedb",
-        "USER": "admin",
-        "PASSWORD": "doyouwannaenter",
-        "HOST": "srvbase",
-        "PORT": "32769",
-    }
-}
+DATABASES = return_dict()
 
 
 # Password validation

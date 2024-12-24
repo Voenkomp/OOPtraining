@@ -1,0 +1,10 @@
+{
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "storedb",
+        "USER": "admin",
+        "PASSWORD": "doyouwannaenter",
+        "HOST": "srvbase",
+        "PORT": "32769"
+    }
+}

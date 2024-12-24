@@ -1,1 +1,4 @@
 storekeeper/venv
+storekeeper/__pycache__
+storekeeper/polls/__pycache__
+storekeeper/site_keeper/__pycache__

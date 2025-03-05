@@ -54,10 +54,32 @@ class MyLogReg:
         precision = MyLogReg.precision(y, y_hat)
         recall = MyLogReg.recall(y, y_hat)
         return 2 * ((precision * recall) / (precision + recall))
-    
+
     @staticmethod
-    def auc_roc():
-        
+    def roc_auc(y: pd.Series, score: np):
+        positive = np.sum(y)
+        negative = len(y) - positive
+        round_score = np.round(score, 10)
+        round_score_y = np.column_stack((round_score, y))
+        sort_round_score_y = round_score_y[round_score_y[:, 1].argsort()][::-1]
+        total = 0
+        for i in range(len(sort_round_score_y)):
+            if sort_round_score_y[i, 1] == 0:
+                upper_positive = np.sum(
+                    sort_round_score_y[:i][
+                        sort_round_score_y[:i, 0] != sort_round_score_y[i, 0]
+                    ]
+                )
+                equal_positive = (
+                    np.sum(
+                        sort_round_score_y[:i][
+                            sort_round_score_y[:i, 0] == sort_round_score_y[i, 0]
+                        ]
+                    )
+                    / 2
+                )
+                total += upper_positive + equal_positive
+        return total / (positive * negative)
 
     def fit(self, X: pd.DataFrame, y: pd.Series, verbose: bool = False):
 
@@ -90,7 +112,10 @@ class MyLogReg:
 
     def get_best_score(self):
         if self.metric:
-            last_metric = getattr(self, self.metric)(y, self.predict(X))
+            if self.metric == "roc_auc":
+                last_metric = getattr(self, self.metric)(y, self.predict_proba(X))
+            else:
+                last_metric = getattr(self, self.metric)(y, self.predict(X))
             return last_metric
         return "Вы вызвали метрику не указав ее в параметре 'metric'"
 

@@ -49,6 +49,16 @@ class MyLogReg:
         )
         return last_metric
 
+    @staticmethod
+    def f1(y: pd.Series, y_hat: pd.Series):
+        precision = MyLogReg.precision(y, y_hat)
+        recall = MyLogReg.recall(y, y_hat)
+        return 2 * ((precision * recall) / (precision + recall))
+    
+    @staticmethod
+    def auc_roc():
+        
+
     def fit(self, X: pd.DataFrame, y: pd.Series, verbose: bool = False):
 
         X.insert(
@@ -79,8 +89,10 @@ class MyLogReg:
         return self.weights[1:]
 
     def get_best_score(self):
-        last_metric = getattr(self, self.metric)(y, self.predict(X))
-        return last_metric
+        if self.metric:
+            last_metric = getattr(self, self.metric)(y, self.predict(X))
+            return last_metric
+        return "Вы вызвали метрику не указав ее в параметре 'metric'"
 
     """возращает вероятности"""
 

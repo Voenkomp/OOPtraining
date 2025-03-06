@@ -59,24 +59,31 @@ class MyLogReg:
     def roc_auc(y: pd.Series, score: np):
         positive = np.sum(y)
         negative = len(y) - positive
+        print(f"P: {positive}, N: {negative}")
         round_score = np.round(score, 10)
         round_score_y = np.column_stack((round_score, y))
-        sort_round_score_y = round_score_y[round_score_y[:, 1].argsort()][::-1]
+        sort_round_score_y = round_score_y[round_score_y[:, 0].argsort()][::-1]
+        print(sort_round_score_y)
+        print("Начало отсчета")
         total = 0
         for i in range(len(sort_round_score_y)):
             if sort_round_score_y[i, 1] == 0:
                 upper_positive = np.sum(
-                    sort_round_score_y[:i][
+                    sort_round_score_y[:i, 1][
                         sort_round_score_y[:i, 0] != sort_round_score_y[i, 0]
                     ]
                 )
+                print(f"Положительные классы, выше по скору {upper_positive}")
                 equal_positive = (
                     np.sum(
-                        sort_round_score_y[:i][
-                            sort_round_score_y[:i, 0] == sort_round_score_y[i, 0]
+                        sort_round_score_y[:, 1][
+                            sort_round_score_y[:, 0] == sort_round_score_y[i, 0]
                         ]
                     )
                     / 2
+                )
+                print(
+                    f"Сумма классов с таким же скором деленная на два {equal_positive}"
                 )
                 total += upper_positive + equal_positive
         return total / (positive * negative)
@@ -132,12 +139,12 @@ class MyLogReg:
         return np.where(self.predict_proba(X) > 0.5, 1, 0)
 
 
-object1 = MyLogReg(n_iter=50, learning_rate=0.1, metric="precision")
+# object1 = MyLogReg(n_iter=50, learning_rate=0.1, metric="precision")
 
-object1.fit(X, y)
+# object1.fit(X, y)
 
 # print(np.mean(object1.get_coef()))
 # print(object1.predict_proba(X))
 # print(np.mean(object1.predict_proba(X)))
 # print(sum(object1.predict(X)))
-print(object1.get_best_score())
+# print(object1.get_best_score())

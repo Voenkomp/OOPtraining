@@ -14,11 +14,32 @@ sort_new_arr = new_arr[new_arr[:, 1].argsort()][::-1]
 # for i in range(len(sort_new_arr)):
 #     print(sort_new_arr[: i + 1, 0])
 
-y = pd.Series([1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0])
+y = pd.Series(
+    [1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0],
+)
 y_hat = pd.Series([1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1])
-score = np.array([0.91, 0.86, 0.78, 0.6, 0.6, 0.55, 0.51, 0.46, 0.45, 0.45, 0.42])
-print(MyLogReg.accuracy(y, y_hat))
-print(((y == 1) & (y_hat == 1)).sum())
+score = pd.DataFrame(
+    {"score": [0.91, 0.86, 0.78, 0.6, 0.6, 0.55, 0.51, 0.46, 0.45, 0.45, 0.42]}
+)
+
+y_score = pd.concat([y, score], axis=1)
+y_score_sort = y_score.sort_values(by=0, ascending=False)
+
+# print(MyLogReg.accuracy(y, y_hat))
+# print(((y == 1) & (y_hat == 1)).sum())
+print(y_score)
+# print(y_score_sort)
+
+
+class Test:
+    def summa(a, b):
+        return a + b
+
+
+a, b = 2, 7
+
+ex = Test()
+# print(Test.summa(a, b))
 
 # print(MyLogReg.roc_auc(y, score))
 

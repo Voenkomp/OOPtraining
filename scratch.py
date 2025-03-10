@@ -24,10 +24,14 @@ score = pd.DataFrame(
 
 y_score = pd.concat([y, score], axis=1)
 y_score_sort = y_score.sort_values(by=0, ascending=False)
+positive = y_score_sort[y_score_sort[0] == 1]
+negative = y_score_sort[y_score_sort[0] == 0]
 
 # print(MyLogReg.accuracy(y, y_hat))
 # print(((y == 1) & (y_hat == 1)).sum())
-print(y_score)
+print(positive)
+print()
+print(negative)
 # print(y_score_sort)
 
 

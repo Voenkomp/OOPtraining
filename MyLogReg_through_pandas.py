@@ -15,12 +15,21 @@ X.columns = [f"col_{col}" for col in X.columns]
 
 class MyLogReg:
     def __init__(
-        self, n_iter: int = 10, learning_rate: float = 0.1, metric: str = None
+        self,
+        n_iter: int = 10,
+        learning_rate: float = 0.1,
+        metric: str = None,
+        reg=None,
+        l1_coef: float = 0,
+        l2_coef: float = 0,
     ):
         self.n_iter = n_iter
         self.learning_rate = learning_rate
         self.weights = None
         self.metric = metric
+        self.reg = reg
+        self.l1_coef = l1_coef
+        self.l2_coef = l2_coef
 
     def __str__(self):
         return (
@@ -28,62 +37,60 @@ class MyLogReg:
         )
 
     @staticmethod
-    def accuracy(y: pd.Series, y_hat: pd.DataFrame):
-        return (y == y_hat).mean()
+    def accuracy(y: pd.Series, y_predict: pd.DataFrame):
+        return (y == y_predict).mean()
 
     @staticmethod
-    def precision(y: pd.Series, y_predict: pd.Series):
+    def precision(y: pd.Series, y_predict: pd.DataFrame):
         tp = ((y == 1) & (y_predict == 1)).sum()
         fp = ((y == 0) & (y_predict == 1)).sum()
         return tp / (tp + fp)
 
     @staticmethod
-    def recall(y: pd.Series, y_hat: pd.Series):
-        last_metric = np.sum(np.where((y == 1) & (y_hat == 1), 1, 0)) / (
-            np.sum(
-                np.where(((y == 1) & (y_hat == 1)) | ((y == 1) & (y_hat == 0)), 1, 0)
-            )
-        )
-        return last_metric
+    def recall(y: pd.Series, y_predict: pd.DataFrame):
+        tp = ((y == 1) & (y_predict == 1)).sum()
+        fn = ((y == 1) & (y_predict == 0)).sum()
+        return tp / (tp + fn)
 
     @staticmethod
-    def f1(y: pd.Series, y_hat: pd.Series):
-        precision = MyLogReg.precision(y, y_hat)
-        recall = MyLogReg.recall(y, y_hat)
-        return 2 * ((precision * recall) / (precision + recall))
+    def f1(y: pd.Series, y_predict: pd.DataFrame):
+        precision = MyLogReg.precision(y, y_predict)
+        recall = MyLogReg.recall(y, y_predict)
+        return 2 * precision * recall / (precision + recall)
 
     @staticmethod
-    def roc_auc(y: pd.Series, score: np):
-        positive = np.sum(y)
-        negative = len(y) - positive
-        print(f"P: {positive}, N: {negative}")
-        round_score = np.round(score, 10)
-        round_score_y = np.column_stack((round_score, y))
-        sort_round_score_y = round_score_y[round_score_y[:, 0].argsort()][::-1]
-        print(sort_round_score_y)
-        print("Начало отсчета")
+    def roc_auc(y: pd.Series, score: pd.Series):
+        score = score.round(10)  # округляем, чтобы пройти валидатор на степике
+        score_y = pd.concat([score, y], axis=1)
+        score_y = score_y.sort_values(by=0, ascending=False)
+        positive = score_y[score_y[1] == 1]
+        negative = score_y[score_y[1] == 0]
+
         total = 0
-        for i in range(len(sort_round_score_y)):
-            if sort_round_score_y[i, 1] == 0:
-                upper_positive = np.sum(
-                    sort_round_score_y[:i, 1][
-                        sort_round_score_y[:i, 0] != sort_round_score_y[i, 0]
-                    ]
-                )
-                print(f"Положительные классы, выше по скору {upper_positive}")
-                equal_positive = (
-                    np.sum(
-                        sort_round_score_y[:, 1][
-                            sort_round_score_y[:, 0] == sort_round_score_y[i, 0]
-                        ]
-                    )
-                    / 2
-                )
-                print(
-                    f"Сумма классов с таким же скором деленная на два {equal_positive}"
-                )
-                total += upper_positive + equal_positive
-        return total / (positive * negative)
+        for cur_score in negative[0]:
+            score_higher = (positive[0] > cur_score).sum()
+            score_equal = (positive[0] == cur_score).sum()
+            total += score_higher + 0.5 * score_equal
+
+        return total / (positive.shape[0] * negative.shape[0])
+
+    def get_reg(self, weights):
+        if self.reg:
+            dict_reg = {
+                "l1": (
+                    self.l1_coef * np.sum(np.abs(weights)),
+                    self.l1_coef * np.sign(weights),
+                ),
+                "l2": (self.l2_coef * np.sum(weights**2), self.l2_coef * 2 * weights),
+                "elasticnet": (
+                    self.l1_coef * np.sum(np.abs(weights))
+                    + self.l2_coef * np.sum(weights**2),
+                    self.l1_coef * np.sign(weights) + self.l2_coef * 2 * weights,
+                ),
+            }
+            return dict_reg[self.reg]
+        else:
+            return 0, 0
 
     def fit(self, X: pd.DataFrame, y: pd.Series, verbose: bool = False):
 
@@ -99,8 +106,11 @@ class MyLogReg:
                 1 + np.exp(-(X @ self.weights))
             )  # расчет предсказанных значений (y_hat)
 
-            Logloss = -np.mean(
-                y * np.log(y_hat + eps) + (1 - y) * np.log(1 - y_hat + eps)
+            reg_loss, reg_grad = self.get_reg(self.weights)
+
+            Logloss = (
+                -np.mean(y * np.log(y_hat + eps) + (1 - y) * np.log(1 - y_hat + eps))
+                + reg_loss
             )
 
             if verbose and (i == 1 or i % verbose) == 0:
@@ -108,7 +118,7 @@ class MyLogReg:
                     print(f"{i} | loss: {Logloss} | {self.metric}: ")
                 print(f"{i} | loss: {Logloss}")
 
-            grad = 1 / len(y) * np.dot((y_hat - y), X)  # расчет градиента
+            grad = 1 / len(y) * np.dot((y_hat - y), X) + reg_grad  # расчет градиента
             self.weights -= self.learning_rate * grad  # обновление весов
 
     def get_coef(self):

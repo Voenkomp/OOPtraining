@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import random
 from sklearn.datasets import make_regression
 
 """Этот код является имплементацией алгоритма машинного обучения логистической регрессии"""
@@ -22,6 +23,8 @@ class MyLogReg:
         reg=None,
         l1_coef: float = 0,
         l2_coef: float = 0,
+        sgd_sample=None,
+        random_sate=42,
     ):
         self.n_iter = n_iter
         self.learning_rate = learning_rate
@@ -30,6 +33,8 @@ class MyLogReg:
         self.reg = reg
         self.l1_coef = l1_coef
         self.l2_coef = l2_coef
+        self.sgd_sample = sgd_sample
+        self.random_state = random_sate
 
     def __str__(self):
         return (
@@ -94,6 +99,11 @@ class MyLogReg:
 
     def fit(self, X: pd.DataFrame, y: pd.Series, verbose: bool = False):
 
+        random.seed(self.random_state)
+
+        if isinstance(self.sgd_sample, float) and 0 < self.sgd_sample <= 1:
+            self.sgd_sample = int(self.sgd_sample * X.shape[0])
+
         X.insert(
             loc=0, column="ones", value=1
         )  # добавление в матрицу фичей единичного столбца
@@ -118,8 +128,26 @@ class MyLogReg:
                     print(f"{i} | loss: {Logloss} | {self.metric}: ")
                 print(f"{i} | loss: {Logloss}")
 
-            grad = 1 / len(y) * np.dot((y_hat - y), X) + reg_grad  # расчет градиента
-            self.weights -= self.learning_rate * grad  # обновление весов
+            if self.sgd_sample:
+                sample_rows_idx = random.sample(range(X.shape[0]), self.sgd_sample)
+                grad = (
+                    1
+                    / len(sample_rows_idx)
+                    * np.dot(
+                        (y_hat[sample_rows_idx] - y.iloc[sample_rows_idx]),
+                        X.iloc[sample_rows_idx],
+                    )
+                    + reg_grad
+                )
+            else:
+                grad = (
+                    1 / len(y) * np.dot((y_hat - y), X) + reg_grad
+                )  # расчет градиента
+
+            if callable(self.learning_rate):
+                self.weights -= self.learning_rate(i) * grad
+            else:
+                self.weights -= self.learning_rate * grad  # обновление весов
 
     def get_coef(self):
         return self.weights[1:]

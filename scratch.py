@@ -1,73 +1,62 @@
 import pandas as pd
 import numpy as np
-from MyLogReg_through_pandas import MyLogReg
+from sklearn.datasets import make_classification
 
-a = np.array([0.34, 0.27, 0.24, 0.24, 0.5])
-b = pd.Series([1, 1, 1, 0, 0])
-
-new_arr = np.column_stack((a, b))
-sort_new_arr = new_arr[new_arr[:, 1].argsort()][::-1]
-
-# print(new_arr)
-# print(sort_new_arr)
-# print(sort_new_arr[:4][sort_new_arr[:4, 0] != sort_new_arr[4, 0]])
-# for i in range(len(sort_new_arr)):
-#     print(sort_new_arr[: i + 1, 0])
-
-y = pd.Series(
-    [1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0],
+X, y = make_classification(
+    n_samples=100, n_features=2, n_informative=2, n_redundant=0, random_state=42
 )
-y_hat = pd.Series([1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1])
-score = pd.DataFrame(
-    {"score": [0.91, 0.86, 0.78, 0.6, 0.6, 0.55, 0.51, 0.46, 0.45, 0.45, 0.42]}
-)
-
-y_score = pd.concat([y, score], axis=1)
-y_score_sort = y_score.sort_values(by=0, ascending=False)
-positive = y_score_sort[y_score_sort[0] == 1]
-negative = y_score_sort[y_score_sort[0] == 0]
-
-# print(MyLogReg.accuracy(y, y_hat))
-# print(((y == 1) & (y_hat == 1)).sum())
-print(positive)
-print()
-print(negative)
-# print(y_score_sort)
+X, y = pd.DataFrame(X), pd.Series(y)
 
 
-class Test:
-    def summa(a, b):
-        return a + b
+class MySVM:
+    def __init__(self, n_iter: int = 10, learning_rate: float = 0.001):
+        self.n_iter = n_iter
+        self.learning_rate = learning_rate
+        self.weights = None
+        self.b = None
+
+    def __repr__(self):
+        return f"MySVM class: n_iter={self.n_iter}, learning_rate={self.learning_rate}"
+
+    def fit(self, X: pd.DataFrame, y: pd.Series, verbose=False):
+        y = y.where(
+            y == 1, -1
+        )  # Если True, то элемент не меняется, в противном случае -1
+        self.weights = np.ones(X.shape[1])
+        self.b = 1
+
+        # answer = (np.dot(self.weights, X.iloc[1]) + self.b) * y.iloc[1]
+        # print(f"Формула дает такой ответ: {answer}")
+
+        for i in range(self.n_iter):
+            for idx in range(X.shape[0]):
+                X_i, y_i = X.iloc[idx], y.iloc[idx]
+                if y_i * (self.weights @ X_i + self.b) >= 1:
+                    gradient_w = 2 * self.weights
+                    gradient_b = 0
+                else:
+                    gradient_w = 2 * self.weights - y_i * X_i
+                    gradient_b = -y_i
+
+                self.weights -= self.learning_rate * gradient_w
+                self.b -= self.learning_rate * gradient_b
+            # LOSS_F = np.sum(self.weights**2) + np.sum(
+            #     max([0, 1 - y.iloc[i] * (self.weights @ X.iloc[i] + self.b)])
+            # ) / len(y)
+            # if verbose and i % verbose == 0:
+            #     f'Добавить лог'
+
+    def get_coef(self):
+        return self.weights, self.b
+
+    def predict(self, X: pd.DataFrame):
+        y_pred = np.sign(X @ self.weights + self.b)
+        y_pred = y_pred.where(y_pred == 1, 0).astype(int)
+        return y_pred
 
 
-a, b = 2, 7
+obj1 = MySVM(n_iter=10, learning_rate=0.05)
 
-ex = Test()
-# print(Test.summa(a, b))
+obj1.fit(X, y)
 
-# print(MyLogReg.roc_auc(y, score))
-
-# pd_series = pd.Series([1, 2, 3, 4, 5])
-# pd_series.index = [i for i in range(2, 7)]
-# print(pd_series)
-# print(type(pd_series))
-# print(pd_series.values)
-# print(pd_series.index)
-# print(pd_series[2])
-
-
-# pd_dataframe = pd.DataFrame(
-#     {
-#         "country": ["Russia", "Kazahstan", "Belarus", "Japan"],
-#         "population": [142.04, 25.9, 10, 100],
-#         "square": [17.1, 6, 4, 3],
-#     },
-#     index=["RU", "KZ", "BY", "JP"],
-# )
-# print(pd_dataframe)
-# print("Строка выведена через loc:\n", pd_dataframe.loc["RU"])
-# print("Строка выведена через iloc:\n", pd_dataframe.iloc[0])
-# print()
-# print(pd_dataframe.loc["RU":"BY", "population"])
-# print()
-# print("Фильтрация с помощью булевых массивов: ", pd_dataframe[pd_dataframe.square >= 6])
+print(obj1.predict(X))

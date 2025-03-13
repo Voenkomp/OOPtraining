@@ -102,7 +102,7 @@ class MyLogReg:
         random.seed(self.random_state)
 
         if isinstance(self.sgd_sample, float) and 0 < self.sgd_sample <= 1:
-            self.sgd_sample = int(self.sgd_sample * X.shape[0])
+            self.sgd_sample = int(round(self.sgd_sample * X.shape[0]))
 
         X.insert(
             loc=0, column="ones", value=1
@@ -123,13 +123,14 @@ class MyLogReg:
                 + reg_loss
             )
 
-            if verbose and (i == 1 or i % verbose) == 0:
+            if verbose and (i == 1 or i % verbose == 0):
                 if self.metric:
                     print(f"{i} | loss: {Logloss} | {self.metric}: ")
                 print(f"{i} | loss: {Logloss}")
 
             if self.sgd_sample:
                 sample_rows_idx = random.sample(range(X.shape[0]), self.sgd_sample)
+                print(max(sample_rows_idx), min(sample_rows_idx))
                 grad = (
                     1
                     / len(sample_rows_idx)
@@ -174,11 +175,11 @@ class MyLogReg:
         return np.where(self.predict_proba(X) > 0.5, 1, 0)
 
 
-# object1 = MyLogReg(n_iter=50, learning_rate=0.1, metric="precision")
+object1 = MyLogReg(n_iter=50, learning_rate=0.1, sgd_sample=0.1)
 
-# object1.fit(X, y)
+object1.fit(X, y)
 
-# print(np.mean(object1.get_coef()))
+print(np.mean(object1.get_coef()))
 # print(object1.predict_proba(X))
 # print(np.mean(object1.predict_proba(X)))
 # print(sum(object1.predict(X)))

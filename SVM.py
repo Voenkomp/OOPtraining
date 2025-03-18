@@ -39,12 +39,9 @@ class MySVM:
         random.seed(self.random_state)
 
         if isinstance(self.sgd_sample, float) and 0 < self.sgd_sample <= 1:
-            self.sgd_sample = int(self.sgd_sample * X.shape[0])
+            self.sgd_sample = int(round(self.sgd_sample * X.shape[0]))
 
         for i in range(self.n_iter):
-
-            if self.sgd_sample:
-                sample_rows_idx = random.sample(range(X.shape[0], self.sgd_sample))
 
             """Calculate LOSS FUNCTION"""
             if verbose and ((i + 1) % verbose == 0 or i == 0):
@@ -57,19 +54,22 @@ class MySVM:
             """End calculate"""
 
             if self.sgd_sample:
-                sample_rows_idx = random.sample(range(X.shape[0], self.sgd_sample))
-                for idx in sample_rows_idx:
-                    X_i, y_i = X.iloc[idx], y.iloc[idx]
+                sample_rows_idx = random.sample(range(X.shape[0]), self.sgd_sample)
+            else:
+                sample_rows_idx = range(X.shape[0])
 
-                    if y_i * (self.weights @ X_i + self.b) >= 1:
-                        gradient_w = 2 * self.weights
-                        gradient_b = 0
-                    else:
-                        gradient_w = 2 * self.weights - self.C * y_i * X_i
-                        gradient_b = -(self.C * y_i)
+            for idx in sample_rows_idx:
+                X_i, y_i = X.iloc[idx], y.iloc[idx]
 
-                    self.weights -= self.learning_rate * gradient_w
-                    self.b -= self.learning_rate * gradient_b
+                if y_i * (self.weights @ X_i + self.b) >= 1:
+                    gradient_w = 2 * self.weights
+                    gradient_b = 0
+                else:
+                    gradient_w = 2 * self.weights - self.C * y_i * X_i
+                    gradient_b = -(self.C * y_i)
+
+                self.weights -= self.learning_rate * gradient_w
+                self.b -= self.learning_rate * gradient_b
 
     def get_coef(self):
         return self.weights, self.b

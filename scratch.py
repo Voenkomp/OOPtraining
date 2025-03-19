@@ -1,4 +1,9 @@
-dk = {1: "first", 2: "second", 3: "third"}
-k, v, d = dk.items()
+import pandas as pd
 
-print(f"key={k},,, value={v}")
+check = pd.Series([1, 2, 3, 4, 5, 6])
+
+check_ind = check.nsmallest(3).index
+result = check[1]
+
+print(check_ind)
+print(result)

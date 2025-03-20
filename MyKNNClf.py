@@ -20,25 +20,28 @@ class MyKNNClf:
 
     def fit(self, X: pd.DataFrame, y: pd.Series):
         """Здесь хранится обучающая\тренировочная выборка"""
-        self.X = X
-        self.y = y
-        self.train_size = self.X.shape
+        self.X_train = X
+        self.y_train = y
+        self.train_size = self.X_train.shape
 
-    def predict(self, X: pd.DataFrame):
-        vector = []
-        for idx in range(X.shape[0]):
-            distance = self.X.apply(
-                lambda X: np.sqrt(np.sum((X - X.iloc[idx]) ** 2)), axis=0
-            )
-            min_distance = distance.nsmallest(self.k).index
-            class_y = self.y.iloc[min_distance]
-            count1 = sum(class_y)
-            count0 = len(class_y) - count1
-            vector.append(1) if count1 >= count0 else vector.append(0)
-        return pd.Series(vector)
+    def euclid_mean_predict(self, row: pd.Series) -> int:
+        mean = self.euclid_mean(row)
+        return 1 if mean >= 0.5 else 0
 
-    def predict_proba(self, X: pd.DataFrame):
-        return pd.Series([0, 1, 2])
+    def predict(self, X_test: pd.DataFrame):
+        return X_test.apply(self.euclid_mean_predict, axis=1)
+
+    def euclid_mean(self, row: pd.Series) -> float:
+        dist_min_ind = (
+            np.sqrt(((row - self.X_train) ** 2).sum(axis=1))
+            .sort_values()
+            .head(self.k)
+            .index
+        )
+        return self.y_train[dist_min_ind].mean()
+
+    def predict_proba(self, X_test: pd.DataFrame):
+        return X_test.apply(self.euclid_mean, axis=1)
 
 
 obj1 = MyKNNClf(1)

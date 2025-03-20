@@ -1,5 +1,11 @@
 import pandas as pd
 import numpy as np
+from sklearn.datasets import make_classification
+
+X, y = make_classification(n_samples=50, n_features=5, n_informative=2, random_state=42)
+X = pd.DataFrame(X)
+y = pd.Series(y)
+X.columns = [f"col_{col}" for col in X.columns]
 
 
 class MyKNNClf:
@@ -35,6 +41,7 @@ class MyKNNClf:
         return pd.Series([0, 1, 2])
 
 
-obj1 = MyKNNClf(5)
+obj1 = MyKNNClf(1)
+obj1.fit(X, y)
 
-print(obj1)
+print(obj1.train_size)

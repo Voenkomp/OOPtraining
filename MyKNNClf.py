@@ -9,11 +9,12 @@ X.columns = [f"col_{col}" for col in X.columns]
 
 
 class MyKNNClf:
-    def __init__(self, k: int = 3):
+    def __init__(self, k: int = 3, metric: str = "euclidean"):
         self.k = k
         self.train_size = None
         self.X = None
         self.y = None
+        self.metric = metric
 
     def __repr__(self):
         return f"MyKNNClf class: k={self.k}"
@@ -24,6 +25,20 @@ class MyKNNClf:
         self.y_train = y
         self.train_size = self.X_train.shape
 
+    def _euclidean_distance(self, row):
+        return np.sqrt(((row - self.X_train) ** 2).sum(axis=1))
+
+    def _chebyshev_distance(self, row):
+        return (np.abs(row - self.X_train)).max(axis=1)
+
+    def _manhattan_distance(self, row):
+        return np.abs(row - self.X_train).sum(axis=1)
+
+    def _cosine_distance(self, row):
+        numerator = (row * self.X_train).sum(axis=1)
+        denominator = np.sqrt(np.sum((row**2))) * np.sqrt((self.X_train**2).sum(axis=1))
+        return 1 - (numerator / denominator)
+
     def euclid_mean_predict(self, row: pd.Series) -> int:
         mean = self.euclid_mean(row)
         return 1 if mean >= 0.5 else 0
@@ -33,7 +48,7 @@ class MyKNNClf:
 
     def euclid_mean(self, row: pd.Series) -> float:
         dist_min_ind = (
-            np.sqrt(((row - self.X_train) ** 2).sum(axis=1))
+            getattr(self, "_" + self.metric + "_distance")(row)
             .sort_values()
             .head(self.k)
             .index

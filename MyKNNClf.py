@@ -42,29 +42,45 @@ class MyKNNClf:
 
     def get_metrics_predict(self, row: pd.Series) -> int:
         class_index = self.get_metrics_mean(row)
-        if self.weight == "rank":
-            class_index = class_index.reset_index(drop=True)
-            class_index.index += 1
-            q_class1 = (1 / pd.Series(class_index[class_index == 1].index)).sum()
-            q_class0 = (1 / pd.Series(class_index[class_index == 0].index)).sum()
-            denominator = 1 / pd.Series(range(1, class_index.shape[0])).sum()
-            return 1 if q_class1 / denominator > q_class0 / denominator else 0
+        if self.weight != "uniform":
+            return 1 if class_index > 0.5 else 0
         return 1 if class_index.mean() >= 0.5 else 0
 
     def predict(self, X_test: pd.DataFrame):
         return X_test.apply(self.get_metrics_predict, axis=1)
 
     def get_metrics_mean(self, row: pd.Series) -> pd.Series:
-        dist_min_ind = (
+        dist_min = (
             getattr(self, "_" + self.metric + "_distance")(row)
             .sort_values()
             .head(self.k)
-            .index
         )
-        return self.y_train[dist_min_ind]  # убрал .mean() отсюда
+        if self.weight == "rank":
+            ind_class_sort = self.y_train[dist_min.index].reset_index(drop=True)
+            ind_class_sort.index += 1
+            q_class1 = (1 / pd.Series(ind_class_sort[ind_class_sort == 1].index)).sum()
+            q_class0 = (1 / pd.Series(ind_class_sort[ind_class_sort == 0].index)).sum()
+            denominator = 1 / pd.Series(range(1, ind_class_sort.shape[0])).sum()
+            return q_class1 / denominator
+        elif self.weight == "distance":
+            dist_class_sort = self.y_train[dist_min.index]
+            dist_class_sort.index = dist_min
+            q_class1 = (
+                1 / pd.Series(dist_class_sort[dist_class_sort == 1].index)
+            ).sum()
+            q_class0 = (
+                1 / pd.Series(dist_class_sort[dist_class_sort == 0].index)
+            ).sum()
+            denominator = 1 / pd.Series(range(1, dist_class_sort.shape[0])).sum()
+            return q_class1 / denominator
+        return self.y_train[dist_min.index]  # убрал .mean() отсюда
 
     def predict_proba(self, X_test: pd.DataFrame):
-        return X_test.apply(self.get_metrics_mean, axis=1)
+
+        prediction = X_test.apply(self.get_metrics_mean, axis=1)
+        if self.weight != "uniform":
+            return prediction
+        return X_test.apply(self.get_metrics_mean, axis=1).mean(axis=1)
 
 
 obj1 = MyKNNClf(1)

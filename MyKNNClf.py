@@ -42,9 +42,7 @@ class MyKNNClf:
 
     def get_metrics_predict(self, row: pd.Series) -> int:
         class_index = self.get_metrics(row)
-        if self.weight != "uniform":
-            return 1 if class_index >= 0.5 else 0
-        return 1 if class_index.mean() >= 0.5 else 0
+        return 1 if class_index >= 0.5 else 0
 
     def predict(self, X_test: pd.DataFrame):
         return X_test.apply(self.get_metrics_predict, axis=1)
@@ -57,7 +55,6 @@ class MyKNNClf:
         )
         if self.weight == "rank":
             ind_class_sort = self.y_train[dist_min.index].reset_index(drop=True)
-            ind_class_sort.index += 1
             q_class1 = (
                 1 / (pd.Series(ind_class_sort[ind_class_sort == 1].index + 1))
             ).sum()
@@ -67,14 +64,11 @@ class MyKNNClf:
             q_class1 = (1 / dist_min[self.y_train[dist_min.index] == 1]).sum()
             denominator = (1 / dist_min).sum()
             return q_class1 / denominator
-        return self.y_train[dist_min.index]
+        return self.y_train[dist_min.index].mean()
 
     def predict_proba(self, X_test: pd.DataFrame):
-
         prediction = X_test.apply(self.get_metrics, axis=1)
-        if self.weight != "uniform":
-            return prediction
-        return prediction.mean(axis=1)
+        return prediction
 
 
 obj1 = MyKNNClf(1)
